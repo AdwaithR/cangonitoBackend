@@ -1,6 +1,8 @@
 ﻿using Cangonito.Controllers.Models;
+using Cangonito.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Data;
 using System.Data.SqlClient;
 
 namespace Cangonito.Controllers
@@ -10,10 +12,11 @@ namespace Cangonito.Controllers
     public class UserActivityController : ControllerBase
     {
         private readonly string connectionString;
-
-        public UserActivityController(IConfiguration configuration)
+        private readonly UserActivityService _userActivityService;
+        public UserActivityController(IConfiguration configuration, UserActivityService userActivityService)
         {
             connectionString = configuration["ConnectionStrings:SqlServerDb"] ?? "";
+            _userActivityService = userActivityService;
         }
 
         [HttpGet]
@@ -25,25 +28,12 @@ namespace Cangonito.Controllers
                 using (var connection = new SqlConnection(connectionString))
                 {
                     connection.Open();
-                    string sql = @"
-                    SELECT 
-                        ua.returnId, 
-                        ua.sessionId, 
-                        ua.username, 
-                        e.eventName, 
-                        es.status, 
-                        es.error
-                    FROM 
-                        UserActivity ua
-                    JOIN 
-                        EventStatus es ON ua.returnId = es.returnId
-                    JOIN 
-                        Events e ON es.eventId = e.eventId
-                    ORDER BY 
-                        ua.returnId, es.id";
+                    string storedProcedure = "GetUserActivities";
 
-                    using (var command = new SqlCommand(sql, connection))
+                    using (var command = new SqlCommand(storedProcedure, connection))
                     {
+                        command.CommandType = CommandType.StoredProcedure;
+
                         using (var reader = command.ExecuteReader())
                         {
                             Dictionary<int, UserActivity> userActivityDict = new Dictionary<int, UserActivity>();
@@ -67,7 +57,7 @@ namespace Cangonito.Controllers
                                 {
                                     EventName = reader.GetString(3),
                                     StatusId = reader.GetInt32(4),
-                                    Status = GetEventStatus(reader.GetInt32(4)),
+                                    Status = _userActivityService.GetEventStatus(reader.GetInt32(4)),
                                 };
                                 if (!reader.IsDBNull(5))
                                 {
@@ -76,11 +66,11 @@ namespace Cangonito.Controllers
                                 userActivityDict[returnId].Events.Add(eventDict);
 
                                 // Update overall status based on event status
-                                if (eventDict.StatusId == 2)
+                                if (eventDict.StatusId == 3) // Failed
                                 {
                                     userActivityDict[returnId].Status = "Failed";
                                 }
-                                else if (userActivityDict[returnId].Status != "Failed" && eventDict.StatusId == 1)
+                                else if (userActivityDict[returnId].Status != "Failed" && eventDict.StatusId == 2) // Completed
                                 {
                                     userActivityDict[returnId].Status = "Success";
                                 }
@@ -112,54 +102,48 @@ namespace Cangonito.Controllers
                     {
                         try
                         {
-                            // Insert into UserActivity
-                            string userActivitySql = @"
-                            INSERT INTO UserActivity (returnId, sessionId, username)
-                            VALUES (@ReturnId, @SessionId, @Username)";
-
-                            using (var userActivityCommand = new SqlCommand(userActivitySql, connection, transaction))
+                            // Insert into UserActivity using stored procedure with Mode = 1
+                            using (var userActivityCommand = new SqlCommand("SaveUserActivities", connection, transaction))
                             {
+                                userActivityCommand.CommandType = CommandType.StoredProcedure;
+                                userActivityCommand.Parameters.AddWithValue("@Mode", 1);
                                 userActivityCommand.Parameters.AddWithValue("@ReturnId", userActivity.ReturnId);
                                 userActivityCommand.Parameters.AddWithValue("@SessionId", userActivity.SessionId);
                                 userActivityCommand.Parameters.AddWithValue("@Username", userActivity.Username);
                                 userActivityCommand.ExecuteNonQuery();
                             }
 
-                            // Insert into EventStatus and Events
+                            // Insert into EventStatus and Events using stored procedures with Mode = 2 and 3
                             foreach (var eventItem in userActivity.Events)
                             {
-                                string eventSql = @"
-                                IF NOT EXISTS (SELECT 1 FROM Events WHERE eventName = @EventName)
-                                BEGIN
-                                    INSERT INTO Events (eventName)
-                                    VALUES (@EventName);
-                                    SET @EventId = SCOPE_IDENTITY();
-                                END
-                                ELSE
-                                BEGIN
-                                    SELECT @EventId = eventId FROM Events WHERE eventName = @EventName;
-                                END";
-
                                 int eventId;
 
-                                using (var eventCommand = new SqlCommand(eventSql, connection, transaction))
+                                // Insert into Events table if not exists and get EventId using stored procedure with Mode = 2
+                                using (var eventCommand = new SqlCommand("SaveUserActivities", connection, transaction))
                                 {
+                                    eventCommand.CommandType = CommandType.StoredProcedure;
+                                    eventCommand.Parameters.AddWithValue("@Mode", 2);
                                     eventCommand.Parameters.AddWithValue("@EventName", eventItem.EventName);
-                                    var eventIdParam = new SqlParameter("@EventId", System.Data.SqlDbType.Int) { Direction = System.Data.ParameterDirection.Output };
+
+                                    // Add @EventId as OUTPUT parameter
+                                    SqlParameter eventIdParam = new SqlParameter("@EventId", SqlDbType.Int);
+                                    eventIdParam.Direction = ParameterDirection.Output;
                                     eventCommand.Parameters.Add(eventIdParam);
+
                                     eventCommand.ExecuteNonQuery();
-                                    eventId = (int)eventIdParam.Value;
+
+                                    // Retrieve the value of @EventId after executing the stored procedure
+                                    eventId = Convert.ToInt32(eventCommand.Parameters["@EventId"].Value);
                                 }
 
-                                string eventStatusSql = @"
-                                INSERT INTO EventStatus (returnId, eventId, status, error)
-                                VALUES (@ReturnId, @EventId, @EventStatus, @Error)";
-
-                                using (var eventStatusCommand = new SqlCommand(eventStatusSql, connection, transaction))
+                                // Insert into EventStatus table using stored procedure with Mode = 3
+                                using (var eventStatusCommand = new SqlCommand("SaveUserActivities", connection, transaction))
                                 {
+                                    eventStatusCommand.CommandType = CommandType.StoredProcedure;
+                                    eventStatusCommand.Parameters.AddWithValue("@Mode", 3);
                                     eventStatusCommand.Parameters.AddWithValue("@ReturnId", userActivity.ReturnId);
                                     eventStatusCommand.Parameters.AddWithValue("@EventId", eventId);
-                                    eventStatusCommand.Parameters.AddWithValue("@EventStatus", eventItem.StatusId);
+                                    eventStatusCommand.Parameters.AddWithValue("@Status", eventItem.StatusId);
                                     eventStatusCommand.Parameters.AddWithValue("@Error", (object)eventItem.Error ?? DBNull.Value);
                                     eventStatusCommand.ExecuteNonQuery();
                                 }
@@ -184,19 +168,6 @@ namespace Cangonito.Controllers
                 return BadRequest(ModelState);
             }
             return Ok("Data inserted successfully");
-        }
-
-        private string GetEventStatus(int status)
-        {
-            switch (status)
-            {
-                case 1:
-                    return "Completed";
-                case 2:
-                    return "Failed";
-                default:
-                    return "Unknown";
-            }
         }
     }
 }
