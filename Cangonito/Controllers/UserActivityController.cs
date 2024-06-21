@@ -67,11 +67,11 @@ namespace Cangonito.Controllers
                                 userActivityDict[returnId].Events.Add(eventDict);
 
                                 // Update overall status based on event status
-                                if (eventDict.StatusId == 3) // Failed
+                                if (eventDict.StatusId == 2) // Failed
                                 {
                                     userActivityDict[returnId].Status = "Failed";
                                 }
-                                else if (userActivityDict[returnId].Status != "Failed" && eventDict.StatusId == 2) // Completed
+                                else if (userActivityDict[returnId].Status != "Failed" && eventDict.StatusId == 1) // Completed
                                 {
                                     userActivityDict[returnId].Status = "Success";
                                 }
