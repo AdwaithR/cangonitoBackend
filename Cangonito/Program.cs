@@ -33,7 +33,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseCors("AllowReactApp"); // Enable the CORS policy
+app.UseCors("AllowMultipleOrigins"); // Enable the updated CORS policy
 
 app.UseAuthorization();
 
