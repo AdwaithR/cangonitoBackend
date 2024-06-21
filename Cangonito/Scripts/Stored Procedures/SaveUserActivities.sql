@@ -30,16 +30,16 @@ BEGIN
     IF @Mode = 1
     BEGIN
         -- Insert into UserActivity
-        INSERT INTO UserActivity (returnId, sessionDate, username, createdDate)
-        VALUES (@ReturnId, @SessionDate, @Username, GETDATE());
+        INSERT INTO UserActivity (returnId, sessionDate, username, isDIY, createdDate)
+        VALUES (@ReturnId, @SessionDate, @Username, 0, GETDATE());
     END
     ELSE IF @Mode = 2
     BEGIN
         -- Insert into Events if not exists and get EventId
         IF NOT EXISTS (SELECT 1 FROM Events WHERE eventName = @EventName)
         BEGIN
-            INSERT INTO Events (eventName, createdDate)
-            VALUES (@EventName, GETDATE());
+            INSERT INTO Events (eventName, isDIY, createdDate)
+            VALUES (@EventName, 0, GETDATE());
             SET @EventId = SCOPE_IDENTITY();
         END
         ELSE

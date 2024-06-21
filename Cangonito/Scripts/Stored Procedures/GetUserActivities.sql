@@ -20,7 +20,8 @@ BEGIN
     SELECT 
         ua.returnId, 
         ua.sessionDate, 
-        ua.username, 
+        ua.userName, 
+		ua.isDIY,
         e.eventName, 
         es.status, 
         es.error

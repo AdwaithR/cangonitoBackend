@@ -48,20 +48,21 @@ namespace Cangonito.Controllers
                                         ReturnId = returnId,
                                         SessionDate = reader.GetDateTime(1),
                                         UserName = reader.GetString(2),
-                                        Status = "Pending", // Default status is set to Pending
+                                        IsDIY = reader.GetBoolean(3),
+                                        Status = "Success",
                                         Events = new List<EventStatus>()
                                     };
                                 }
 
                                 EventStatus eventDict = new EventStatus
                                 {
-                                    EventName = reader.GetString(3),
-                                    StatusId = reader.GetInt32(4),
-                                    Status = _userActivityService.GetEventStatus(reader.GetInt32(4)),
+                                    EventName = reader.GetString(4),
+                                    StatusId = reader.GetInt32(5),
+                                    Status = _userActivityService.GetEventStatus(reader.GetInt32(5)),
                                 };
-                                if (!reader.IsDBNull(5))
+                                if (!reader.IsDBNull(6))
                                 {
-                                    eventDict.Error = reader.GetString(5);
+                                    eventDict.Error = reader.GetString(6);
                                 }
                                 userActivityDict[returnId].Events.Add(eventDict);
 
