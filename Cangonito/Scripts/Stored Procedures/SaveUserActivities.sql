@@ -17,7 +17,7 @@ GO
 CREATE PROCEDURE SaveUserActivities
     @Mode INT,
     @ReturnId INT = NULL,
-    @SessionDate INT = NULL,
+    @SessionDate DATETIME = NULL,
     @Username NVARCHAR(255) = NULL,
     @EventName NVARCHAR(255) = NULL,
     @Status INT = NULL,
