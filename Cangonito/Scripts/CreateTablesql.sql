@@ -14,12 +14,14 @@ CREATE TABLE UserActivity (
     returnId INT PRIMARY KEY,
     sessionDate DATETIME,
     username VARCHAR(50),
+	createdDate DATETIME
 );
 
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Events]') AND type in (N'U'))
 CREATE TABLE [Events] (
     eventId INT identity PRIMARY KEY,
-    eventName VARCHAR(50)
+    eventName VARCHAR(50),
+	createdDate DATETIME
 );
 
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[EventStatus]') AND type in (N'U'))
@@ -29,26 +31,27 @@ CREATE TABLE EventStatus (
     eventId INT,
     status INT,
     error VARCHAR(100),
+	createdDate DATETIME,
     FOREIGN KEY (returnId) REFERENCES UserActivity(returnId),
     FOREIGN KEY (eventId) REFERENCES Events(eventId)
 );
 
 
-INSERT INTO [Events] (eventName) VALUES ('interview'), ('tax');
+INSERT INTO [Events] (eventName,createdDate) VALUES ('interview', GETDATE()), ('tax', GETDATE());
 
-INSERT INTO UserActivity (returnId, sessionDate, username)
+INSERT INTO UserActivity (returnId, sessionDate, username, createdDate)
 VALUES 
-(12345, GETDATE(), 'user1@example.com'),
-(16347, GETDATE(), 'user2@example.com');
+(12345, GETDATE(), 'user1@example.com', GETDATE()),
+(16347, GETDATE(), 'user2@example.com', GETDATE());
 
-INSERT INTO EventStatus (returnId, eventId, status, error)
+INSERT INTO EventStatus (returnId, eventId, status, error, createdDate)
 VALUES
-('12345', (SELECT eventId FROM Events WHERE eventName = 'interview'), 1, NULL),
-('12345', (SELECT eventId FROM Events WHERE eventName = 'tax'), 2, 'error 404'),
-('16347', (SELECT eventId FROM Events WHERE eventName = 'interview'), 1, NULL),
-('16347', (SELECT eventId FROM Events WHERE eventName = 'tax'), 1, NULL);
+('12345', (SELECT eventId FROM Events WHERE eventName = 'interview'), 1, NULL, GETDATE()),
+('12345', (SELECT eventId FROM Events WHERE eventName = 'tax'), 2, 'error 404', GETDATE()),
+('16347', (SELECT eventId FROM Events WHERE eventName = 'interview'), 1, NULL, GETDATE()),
+('16347', (SELECT eventId FROM Events WHERE eventName = 'tax'), 1, NULL, GETDATE());
 
 
---select * from EventStatus
---select * from [Events]
---select * from UserActivity
+select * from EventStatus
+select * from [Events]
+select * from UserActivity

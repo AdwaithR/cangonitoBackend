@@ -1,4 +1,4 @@
-﻿using Cangonito.Controllers.Models;
+﻿using Cangonito.Models;
 using Cangonito.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -47,7 +47,7 @@ namespace Cangonito.Controllers
                                     {
                                         ReturnId = returnId,
                                         SessionDate = reader.GetDateTime(1),
-                                        Username = reader.GetString(2),
+                                        UserName = reader.GetString(2),
                                         Status = "Pending", // Default status is set to Pending
                                         Events = new List<EventStatus>()
                                     };
@@ -170,7 +170,7 @@ namespace Cangonito.Controllers
         //    return Ok("Data inserted successfully");
         //}
 
-        [HttpPost("Activity")]
+        [HttpPost("activity")]
         public async Task<IActionResult> PostActivity([FromBody] UserActivity userActivity)
         {
             if (userActivity == null)
@@ -192,7 +192,7 @@ namespace Cangonito.Controllers
                         command.Parameters.AddWithValue("@Mode", 1);
                         command.Parameters.AddWithValue("@ReturnId", userActivity.ReturnId);
                         command.Parameters.AddWithValue("@SessionDate", userActivity.SessionDate);
-                        command.Parameters.AddWithValue("@Username", userActivity.Username);
+                        command.Parameters.AddWithValue("@Username", userActivity.UserName);
 
                         await command.ExecuteNonQueryAsync();
                     }
@@ -207,7 +207,7 @@ namespace Cangonito.Controllers
             }
         }
 
-        [HttpPost("Events")]
+        [HttpPost("events")]
         public async Task<IActionResult> AddActivity([FromBody] UserActivity userActivity)
         {
             if (userActivity == null)
