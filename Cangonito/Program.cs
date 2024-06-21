@@ -16,7 +16,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowReactApp",
         policy =>
         {
-            policy.WithOrigins("http://localhost:3040") // Replace with the address of your React app
+            policy.WithOrigins("http://localhost:3000", "http://localhost:3040") // Replace with the address of your React app
                   .AllowAnyHeader()
                   .AllowAnyMethod();
         });
