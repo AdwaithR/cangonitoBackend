@@ -19,7 +19,7 @@ AS
 BEGIN
     SELECT 
         ua.returnId, 
-        ua.sessionId, 
+        ua.sessionDate, 
         ua.username, 
         e.eventName, 
         es.status, 

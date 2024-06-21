@@ -12,7 +12,7 @@ DROP TABLE [dbo].[UserActivity];
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[UserActivity]') AND type in (N'U'))
 CREATE TABLE UserActivity (
     returnId INT PRIMARY KEY,
-    sessionId INT,
+    sessionDate DATETIME,
     username VARCHAR(50),
 );
 
@@ -36,10 +36,10 @@ CREATE TABLE EventStatus (
 
 INSERT INTO [Events] (eventName) VALUES ('interview'), ('tax');
 
-INSERT INTO UserActivity (returnId, sessionId, username)
+INSERT INTO UserActivity (returnId, sessionDate, username)
 VALUES 
-(12345, 243822, 'user1@example.com'),
-(16347, 467383, 'user2@example.com');
+(12345, GETDATE(), 'user1@example.com'),
+(16347, GETDATE(), 'user2@example.com');
 
 INSERT INTO EventStatus (returnId, eventId, status, error)
 VALUES

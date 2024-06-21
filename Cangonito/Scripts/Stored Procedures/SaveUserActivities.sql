@@ -17,7 +17,7 @@ GO
 CREATE PROCEDURE SaveUserActivities
     @Mode INT,
     @ReturnId INT = NULL,
-    @SessionId INT = NULL,
+    @SessionDate INT = NULL,
     @Username NVARCHAR(255) = NULL,
     @EventName NVARCHAR(255) = NULL,
     @Status INT = NULL,
@@ -30,8 +30,8 @@ BEGIN
     IF @Mode = 1
     BEGIN
         -- Insert into UserActivity
-        INSERT INTO UserActivity (returnId, sessionId, username)
-        VALUES (@ReturnId, @SessionId, @Username);
+        INSERT INTO UserActivity (returnId, sessionDate, username)
+        VALUES (@ReturnId, @SessionDate, @Username);
     END
     ELSE IF @Mode = 2
     BEGIN

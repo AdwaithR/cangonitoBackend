@@ -46,7 +46,7 @@ namespace Cangonito.Controllers
                                     userActivityDict[returnId] = new UserActivity
                                     {
                                         ReturnId = returnId,
-                                        SessionId = reader.GetInt32(1),
+                                        SessionDate = reader.GetDateTime(1),
                                         Username = reader.GetString(2),
                                         Status = "Pending", // Default status is set to Pending
                                         Events = new List<EventStatus>()
@@ -108,7 +108,7 @@ namespace Cangonito.Controllers
                                 userActivityCommand.CommandType = CommandType.StoredProcedure;
                                 userActivityCommand.Parameters.AddWithValue("@Mode", 1);
                                 userActivityCommand.Parameters.AddWithValue("@ReturnId", userActivity.ReturnId);
-                                userActivityCommand.Parameters.AddWithValue("@SessionId", userActivity.SessionId);
+                                userActivityCommand.Parameters.AddWithValue("@SessionDate", userActivity.SessionDate);
                                 userActivityCommand.Parameters.AddWithValue("@Username", userActivity.Username);
                                 userActivityCommand.ExecuteNonQuery();
                             }
@@ -168,6 +168,42 @@ namespace Cangonito.Controllers
                 return BadRequest(ModelState);
             }
             return Ok("Data inserted successfully");
+        }
+
+        [HttpPost("Activity")]
+        public async Task<IActionResult> PostActivity([FromBody] UserActivity userActivity)
+        {
+            if (userActivity == null)
+            {
+                return BadRequest("UserActivity is null.");
+            }
+
+            try
+            {
+                using (var connection = new SqlConnection(connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    string sql = @"
+                        INSERT INTO UserActivity (returnId, sessionDate, username)
+                        VALUES (@ReturnId, @SessionDate, @Username)";
+
+                    using (var command = new SqlCommand(sql, connection))
+                    {
+                        command.Parameters.AddWithValue("@ReturnId", userActivity.ReturnId);
+                        command.Parameters.AddWithValue("@SessionDate", userActivity.SessionDate);
+                        command.Parameters.AddWithValue("@Username", userActivity.Username);
+
+                        await command.ExecuteNonQueryAsync();
+                    }
+                }
+
+                return Ok("Data inserted successfully");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
     }
 }
